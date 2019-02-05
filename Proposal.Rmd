@@ -1,0 +1,51 @@
+---
+title: "Proposal"
+author: "Kathryn Denning"
+date: "2/4/2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup and data import, echo = FALSE, warning = FALSE, message=FALSE, error=FALSE}
+library(rio)
+library(here)
+library(tidyverse)
+library(magrittr)
+library(RColorBrewer)
+library(ggridges)
+library(XML)
+knitr::opts_chunk$set()
+
+x <- readHTMLTable("http://www.nuforc.org/webreports/ndxe201901.html")
+ufo_jan19 <- plyr::ldply(x, data.frame)
+
+y <- readHTMLTable("http://www.nuforc.org/webreports/ndxlOR.html")
+ufo_oregon <- plyr::ldply(y, data.frame)
+```
+
+
+#What I did to the original data to get it smaller
+
+
+#Description of data:
+
+#Plot 1
+##Rough plot
+
+##Idea of story communicating
+
+#Plot 2
+##Rough plot
+
+##Idea of story communicating
+
+#Plot 3
+##Rough plot
+
+##Idea of story communicating
+
+#Plot 4
+##Rough plot
+
+##Idea of story communicating
