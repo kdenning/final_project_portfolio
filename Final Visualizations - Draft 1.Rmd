@@ -16,6 +16,7 @@ library(XML)
 library(janitor)
 library(colorspace)
 library(ggridges)
+library(ggsci)
 knitr::opts_chunk$set()
 
 #read in data on all UFO citings in Jan 2019
@@ -266,19 +267,22 @@ plot_freq_bystate_andregion %<>%
 
 shape_plot_us <- plot_freq_bystate_andregion %>% 
   group_by(shape) %>% 
+  filter(shape != "Unknown") %>% 
   count() %>% 
   arrange(-nn) %>% 
   na.omit() %>% 
-  filter(nn > 5)
+  filter(nn > 10)
 
 ggplot(shape_plot_us, aes(reorder(shape, -nn), nn, fill = shape)) +
   geom_col(position = "dodge") +
-  scale_fill_viridis_d() +
-  theme_minimal() +
+  #scale_fill_viridis_d() +
   labs(title = "Frequency of UFO observations by shape",
        y = "Frequency",
        x = "Shape") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  theme_dark() + theme(
+    panel.background = element_rect(fill = "#2D2D2D")) +
+  scale_fill_tron()
 ```
 ###Plot 4: Choropleth of frequency of reports across Oregon by location
 Plot showing the shape of the state of Oregon with colors changing on the map according to the density of the reports, using changes in color like a heatmap and ideally the viridis color palette. I would like to have either county outlines on the state and cities also identified on the map for reference (like Eugene, Portland, Bend, McMinville (UFO festival location, has to be identified!)).
