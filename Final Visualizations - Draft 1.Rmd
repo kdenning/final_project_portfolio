@@ -279,9 +279,10 @@ ggplot(shape_plot_us, aes(reorder(shape, -nn), nn, fill = shape)) +
   labs(title = "Frequency of UFO observations by shape",
        y = "Frequency",
        x = "Shape") +
-  theme(legend.position = "none") +
-  theme_dark() + theme(
-    panel.background = element_rect(fill = "#2D2D2D")) +
+  theme_dark() + 
+  theme(
+    panel.background = element_rect(fill = "#2D2D2D"),
+    legend.position = "none") +
   scale_fill_tron()
 ```
 ###Plot 4: Choropleth of frequency of reports across Oregon by location
