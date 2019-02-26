@@ -37,6 +37,9 @@ clean <- ufo_jan19 %>%
 y <- readHTMLTable("http://www.nuforc.org/webreports/ndxlOR.html")
 #Turn it into a dataset
 ufo_oregon <- plyr::ldply(y, data.frame)
+
+#data on the different regions and states
+state_region <- read.csv(file="https://raw.githubusercontent.com/cphalpert/census-regions/master/us%20census%20bureau%20regions%20and%20divisions.csv", header=TRUE, sep=",")
 ```
 
 #Description of data:
@@ -49,34 +52,39 @@ All plots will be made for a general public audience, though the scientific(?) c
 ###Plot 1: Choropleth of frequency of reports across US by location
 Plot showing the shape of the country with colors changing on the map according to the density of the reports, using changes in color like a heatmap and ideally the viridis color palette. I plan on doing this at the city level within each state, but hopefully can still have the outline of each state visible in the map of the US as well.
 
-```{r}
+```{r plot 1 - chloropleth version 1}
 state <- ggplot2::map_data("state")
 
-#need to have a varaible with the full state names to merge datasets
-state_fullname <- datasets::state.name
-state_fullname <- sapply(state.name, tolower)
+#need to have a varaible with the full state names in lowercase to merge datasets
+state_fullname <- datasets::state.name #calling dataset with state names
+state_fullname <- sapply(state.name, tolower) #making them lowercase
 
-state_abbrv <- datasets::state.abb
+state_abbrv <- datasets::state.abb #calling dataset with abbreviations to use as key when merging dataset to get full names in main dataset so that it can be combined with dataset used to make map of US
 
 state_key <- data.frame(
   state_full = state_fullname,
   state_abrv = state_abbrv
-)
+) #making dataset with the two character strings state_fullname and state_abbrv
+
 state_key %<>% clean_names
 
-join1 <- left_join(clean, state_key)
+join1 <- left_join(clean, state_key) #joining dataset with fullnames to cleaned ufo dataset
 
+#getting frequency of UFO citings per state
 plot1 <- join1 %>% 
   group_by(state_full) %>% 
   count()
 
+#cleaning dataset that has state information for plot of US so that it can be merged
 state_fixed <- state %>% 
   mutate(state_full = region) %>% 
   select(-region) %>% 
   clean_names
 
+#merging data with frequency of UFO with plot dataset
 plot1_freq_merged <- left_join(state_fixed, plot1)
 
+#code that removes axes from plot of US
 ditch_the_axes <- theme(
   axis.text = element_blank(),
   axis.line = element_blank(),
@@ -86,72 +94,84 @@ ditch_the_axes <- theme(
   axis.title = element_blank()
   )
 
-ggplot(data = plot1_freq_merged) + 
-  geom_polygon(aes(x = long, y = lat, fill = n, group = group), color = "white") + 
-  coord_fixed(1.3) +
-  guides(fill=FALSE) +
-  scale_fill_continuous("viridis") +
-  ditch_the_axes
-
-state_base <- ggplot(data = plot1_freq_merged, mapping = aes(x = long, y = lat, group = group)) + 
+#code that makes US base
+state_base <- ggplot(data = plot1_freq_merged, 
+                     mapping = aes(x = long, y = lat, group = group)) + 
   coord_fixed(1.3) + 
   geom_polygon(color = "white", fill = "white")
 
+#code that fills the states with frequency data
 state_filled <- state_base + 
   geom_polygon(data = plot1_freq_merged, aes(fill = n), color = "white") +
       geom_polygon(color = "white", fill = NA) +
       scale_fill_continuous_sequential("viridis", name = "Frequency") +
   ditch_the_axes
 
+#adding title
 state_filled + 
   labs(title = "Frequency of UFO citings per state")
 ```
 
-Maybe I should look into frequency of citings by population? by conservative vs liberal area?
+####After makung the first chloropleth, I decideed the patterns it is showing might be a little misguided, as the frequency of observations seems to be confounded with the populatin size of the state. I decided to re-do the plot to represent the proportion of observations according to the state population.
 
-```{r}
+```{r plot 1 - chloropleth with proportion of observations per population}
 #importing dataset with population stats from the United States Census Bureau
 pop <- read_csv("nst-est2018-alldata.csv")
 
+#cleaning the formatting of the names
+pop %<>% 
+  clean_names() 
+
+#changing the state name variable so that it will be the same when merging later and making data lowercase
 pop$state_full <- tolower(pop$name)
 
-pop %<>% 
-  clean_names() %>% 
+#cleaning dataset to exclude areas that weren't in my UFO dataset
+pop %<>%
   filter(state_full != "puerto rico") %>% 
   filter(state_full != "district of columbia") %>% 
   filter(state_full != "united states")
 
-
+#making dataset that is only the 50 states, ignoring the four regions for the moment
 pop_state <- pop %>%
   filter(state_full != "northeast region") %>% 
   filter(state_full != "midwest region") %>% 
   filter(state_full != "south region") %>% 
   filter(state_full != "west region")
 
+#merging population dataset with the data on the frequency of UFO observations
 pop_state_freq_merged <- left_join(pop_state, plot1_freq_merged)
 
+#converting the frequency of observations to be a proportion
 freq_bypop_state <- pop_state_freq_merged %>% 
   group_by(state_full) %>% 
-  mutate(freq_bypop = ((n/popestimate2018)*100)) %>% 
+  mutate(freq_bypop = ((n/popestimate2018))) %>% 
   summarize(freq_bypop_perstate = mean(freq_bypop))
 
+#adding the proportion back into the main dataset
 pop_state_freq_merged1 <- left_join(plot1_freq_merged, freq_bypop_state)
 
+#base of US for the plot
 state_base2 <- ggplot(data = pop_state_freq_merged1 , mapping = aes(x = long, y = lat, group = group)) + 
   coord_fixed(1.3) + 
   geom_polygon(color = "white", fill = "white")
 
+#filling in the states with the proportion data
 state_filled2 <- state_base + 
   geom_polygon(data = pop_state_freq_merged1 , aes(fill = freq_bypop_perstate), color = "white") +
       geom_polygon(color = "white", fill = NA) +
-      scale_fill_continuous_sequential("viridis", name = "Frequency") +
+      scale_fill_continuous_sequential("viridis", name = "Proprtion") +
   ditch_the_axes
 
+#adding labels
 state_filled2 + 
   labs(title = "Proportion of UFO citings per state",
        subtitle = "Proportion determined by number of citings divided by population size")
+```
 
-#want to make bar plot facetted by region with frequency of observations by population of state
+I then decided that another way to visualized this information might be to make a barplot showing the frequency of observations by state and region with state organized in descending order in regards to population, to show outlier states with more observations that other states around their same size in population.
+
+```{r}
+#made the population dataset to include a variable of region
 pop_region <- pop %>%
   select(c(state_full, popestimate2018, region)) %>%  
   filter(state_full != "northeast region") %>% 
@@ -163,20 +183,27 @@ pop_region <- pop %>%
                                               "South",
                                               "West"))) 
 
+
+#merged population region dataset with overall dataset with dataset with state names and regions to create key that can merge with the UFO obersevation dataset
 region_withfullstate <- left_join(state_key, pop_region)
 
+#merged region data with UFO observation data
 pop_freq_state_region <- left_join(region_withfullstate, clean)
 
+#Make a frequency of observations from this dataset
 freq_bystate <- pop_freq_state_region %>% 
   group_by(state_abrv) %>% 
   count()
 
+#merged the frequency variable back into the overall dataset
 plot_freq_bystate_andregion <- left_join(pop_freq_state_region, freq_bystate)
 
+#got rid of variables I didn't want and repeat rows 
 plot_freq_bystate_andregion2 <- plot_freq_bystate_andregion %>% 
   select(state_abrv, popestimate2018, region, n) %>% 
   unique()
 
+#bar plot
 ggplot(plot_freq_bystate_andregion2, aes(reorder(state_abrv, popestimate2018), n)) +
   geom_col(aes(fill = region)) +
   ylim(0,25) +
@@ -194,47 +221,41 @@ ggplot(plot_freq_bystate_andregion2, aes(reorder(state_abrv, popestimate2018), n
 Heatmap will show frequency of reports on the y-axis and time on the x-axis. I plan on using the viridis color palette.
 
 ```{r}
-state_region <- read.csv(file="https://raw.githubusercontent.com/cphalpert/census-regions/master/us%20census%20bureau%20regions%20and%20divisions.csv", header=TRUE, sep=",")
-
-plot2_state <- join1 %>% 
+#cleaning date_time variable to be separate variables and making date interpretable using lubridate
+plot2_time <- join1 %>% 
   separate(date_time, c("date", "time"), sep = " ") %>% 
   mutate(date = lubridate::mdy(date),
-         state = state_abrv) %>% 
+         state = state_abrv) 
+
+#then getting frequncy of observations per state per day
+plot2_state <- plot2_time %>% 
   group_by(state, date) %>% 
   count()
 
-plot2_region <- join1 %>% 
-  separate(date_time, c("date", "time"), sep = " ") %>% 
-  mutate(date = lubridate::mdy(date),
-         state = state_abrv)
+#doing the same but for region instead of state
+##first need to merge datasets to have region information
+join2 <- left_join(region_withfullstate, plot2_region)
 
-join2 <- left_join(state_region, plot2_region)
-
+##now getting frequency
 plot2_region_joined <-join2 %>% 
   group_by(region, date) %>% 
   count()
-  
+
+#heatmap of observations per state per day
 ggplot(plot2 , aes(state, date)) +
     geom_tile(aes(fill = n)) +
 scale_fill_viridis_c() +
   coord_flip()
 
+#heatmap of observations per region per day
 ggplot(plot2_region_joined, aes(region, date)) +
   geom_tile(aes(fill = n)) +
   scale_fill_viridis_c(name = "Frequency") +
   theme_minimal()
 ```
 
-Started with this heatmap, did it by state and by region, and realized that, without observations each day, a heatmap really wasn't going to work too well. Decided to do a ridgeline density plot instead.
+Started with this heatmap, did it by state and by region, and realized that, without observations each day, a heatmap really wasn't going to work too well and there wasn't enough data overtime (only a month) to really bin lerger time intervals. If you have suggestions of how to improve this, please let me know.
 
-```{r}
-plot2_bar <- ggplot(plot2_region_joined, aes(x = date, y = frequency)) +
-  geom_col(aes(fill = region), position = "dodge") +
-  facet_wrap(~region) +
-  scale_fill_viridis_d() +
-  theme_dark()
-
-```
 
 ###Plot 3: A scatterplot showing reports over days in the last month by shape
 Scatterplot showing the frequency of reports on the y-axis across time in days on x-axis grouped by shape. I plan on displaying shape by (ideally) using corresponding shapes as the dots, though otherwise I might identify shape by color or with lines/geom_ribbon corresponding with shape. 
