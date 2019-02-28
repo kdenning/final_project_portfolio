@@ -3,6 +3,8 @@ title: "Final Project Visualizations - Draft 1"
 author: "Kathryn Denning"
 date: "2/25/2019"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ````{r setup and data import, echo = FALSE, warning = FALSE, message=FALSE, error=FALSE}
@@ -16,7 +18,8 @@ library(XML)
 library(janitor)
 library(colorspace)
 library(ggridges)
-library(ggsci)
+#library(ggsci)
+library(ggrepel)
 knitr::opts_chunk$set()
 
 #read in data on all UFO citings in Jan 2019
@@ -30,17 +33,14 @@ ufo_jan19 <- read_csv("ufo_jan19.csv")
 #cleaned dataset to be lowercase and to only include US states
 clean <- ufo_jan19 %>%
   clean_names() %>% 
-  filter(state_abrv != "AB") %>% 
-  filter(state_abrv != "ON") %>% 
-  filter(!is.na(state_abrv))
+  filter(state != "AB") %>% 
+  filter(state != "ON") %>% 
+  filter(!is.na(state))
 
 #Read in data of all ufo citings in Oregon ever
 y <- readHTMLTable("http://www.nuforc.org/webreports/ndxlOR.html")
 #Turn it into a dataset
 ufo_oregon <- plyr::ldply(y, data.frame)
-
-#data on the different regions and states
-state_region <- read.csv(file="https://raw.githubusercontent.com/cphalpert/census-regions/master/us%20census%20bureau%20regions%20and%20divisions.csv", header=TRUE, sep=",")
 ```
 
 #Description of data:
@@ -50,7 +50,7 @@ These two datafiles come from the National UFO Reporting Center (http://www.nufo
 
 All plots will be made for a general public audience, though the scientific(?) community interested in UFO sightings might also be interested.
 
-###Plot 1: Choropleth of frequency of reports across US by location
+###Plot 1A: Choropleth of frequency of reports across US by location
 Plot showing the shape of the country with colors changing on the map according to the density of the reports, using changes in color like a heatmap and ideally the viridis color palette. I plan on doing this at the city level within each state, but hopefully can still have the outline of each state visible in the map of the US as well.
 
 ```{r plot 1 - chloropleth version 1}
@@ -68,6 +68,9 @@ state_key <- data.frame(
 ) #making dataset with the two character strings state_fullname and state_abbrv
 
 state_key %<>% clean_names
+
+clean %<>% 
+  mutate(state_abrv = state)
 
 join1 <- left_join(clean, state_key) #joining dataset with fullnames to cleaned ufo dataset
 
@@ -110,10 +113,13 @@ state_filled <- state_base +
 
 #adding title
 state_filled + 
-  labs(title = "Frequency of UFO citings per state")
+  labs(title = "Frequency of UFO citings per state",
+       caption = "Data from National UFO Reporting Center and US Census Bureau")
 ```
 
-####After makung the first chloropleth, I decideed the patterns it is showing might be a little misguided, as the frequency of observations seems to be confounded with the populatin size of the state. I decided to re-do the plot to represent the proportion of observations according to the state population.
+After makung the first chloropleth, I decideed the patterns it is showing might be a little misguided, as the frequency of observations seems to be confounded with the populatin size of the state. I decided to re-do the plot to represent the proportion of observations according to the state population.
+
+###Plot 1B: Chloropleth of proportion
 
 ```{r plot 1 - chloropleth with proportion of observations per population}
 #importing dataset with population stats from the United States Census Bureau
@@ -166,10 +172,13 @@ state_filled2 <- state_base +
 #adding labels
 state_filled2 + 
   labs(title = "Proportion of UFO citings per state",
-       subtitle = "Proportion determined by number of citings divided by population size")
+       subtitle = "Proportion determined by number of citings divided by population size",
+       caption = "Data from National UFO Reporting Center and US Census Bureau")
 ```
 
 I then decided that another way to visualized this information might be to make a barplot showing the frequency of observations by state and region with state organized in descending order in regards to population, to show outlier states with more observations that other states around their same size in population.
+
+###Plot2: Bar plot showing frequency of observations per state with state in descending order by population
 
 ```{r}
 #made the population dataset to include a variable of region
@@ -214,82 +223,196 @@ ggplot(plot_freq_bystate_andregion2, aes(reorder(state_abrv, popestimate2018), n
   labs(title = "Frequency of UFO observations by state and region",
        subtitle = "States in descending order by population size",
        y = "Frequency of UFO observations",
-       x = "State")
-```
-
-
-###Plot 2: A heatmap showing the frequency of reports over days in the last month
-Heatmap will show frequency of reports on the y-axis and time on the x-axis. I plan on using the viridis color palette.
-
-```{r}
-#cleaning date_time variable to be separate variables and making date interpretable using lubridate
-plot2_time <- join1 %>% 
-  separate(date_time, c("date", "time"), sep = " ") %>% 
-  mutate(date = lubridate::mdy(date),
-         state = state_abrv) 
-
-#then getting frequncy of observations per state per day
-plot2_state <- plot2_time %>% 
-  group_by(state, date) %>% 
-  count()
-
-#doing the same but for region instead of state
-##first need to merge datasets to have region information
-join2 <- left_join(region_withfullstate, plot2_region)
-
-##now getting frequency
-plot2_region_joined <-join2 %>% 
-  group_by(region, date) %>% 
-  count()
-
-#heatmap of observations per state per day
-ggplot(plot2 , aes(state, date)) +
-    geom_tile(aes(fill = n)) +
-scale_fill_viridis_c() +
-  coord_flip()
-
-#heatmap of observations per region per day
-ggplot(plot2_region_joined, aes(region, date)) +
-  geom_tile(aes(fill = n)) +
-  scale_fill_viridis_c(name = "Frequency") +
-  theme_minimal()
+       x = "State",
+       caption = "Data from National UFO Reporting Center and US Census Bureau")
 ```
 
 Started with this heatmap, did it by state and by region, and realized that, without observations each day, a heatmap really wasn't going to work too well and there wasn't enough data overtime (only a month) to really bin lerger time intervals. If you have suggestions of how to improve this, please let me know.
 
-
-###Plot 3: A scatterplot showing reports over days in the last month by shape
-Scatterplot showing the frequency of reports on the y-axis across time in days on x-axis grouped by shape. I plan on displaying shape by (ideally) using corresponding shapes as the dots, though otherwise I might identify shape by color or with lines/geom_ribbon corresponding with shape. 
-
-```{r}
-plot_freq_bystate_andregion %<>% 
-  mutate(shape = as.factor(shape))
-
-shape_plot_us <- plot_freq_bystate_andregion %>% 
-  group_by(shape) %>% 
-  filter(shape != "Unknown") %>% 
-  count() %>% 
-  arrange(-nn) %>% 
-  na.omit() %>% 
-  filter(nn > 10)
-
-ggplot(shape_plot_us, aes(reorder(shape, -nn), nn, fill = shape)) +
-  geom_col(position = "dodge") +
-  #scale_fill_viridis_d() +
-  labs(title = "Frequency of UFO observations by shape",
-       y = "Frequency",
-       x = "Shape") +
-  theme_dark() + 
-  theme(
-    panel.background = element_rect(fill = "#2D2D2D"),
-    legend.position = "none") +
-  scale_fill_tron()
-```
-###Plot 4: Choropleth of frequency of reports across Oregon by location
+###Plot 3A: Choropleth of frequency of reports across Oregon by location
 Plot showing the shape of the state of Oregon with colors changing on the map according to the density of the reports, using changes in color like a heatmap and ideally the viridis color palette. I would like to have either county outlines on the state and cities also identified on the map for reference (like Eugene, Portland, Bend, McMinville (UFO festival location, has to be identified!)).
 
-###Plot 5: A plot showing frequency of reports by city in Oregon (top 10)
-Barplot with frequency on the y-axis and city on the x-axis, most likely with the axes switched. I haven't thought of what color scheme I might want to designate city.
+```{r chloropleth of frequency in oregon ever}
+#cleaning the oregon dataset
+ufo_oregon %<>% clean_names() 
+
+#importing dataset with information about city, county, and population information
+oregon_city_county <- import("oregon_city_county.csv")
+
+#joining dataset of ufo data with oregon city and county data
+oregon_join1 <- left_join(oregon_city_county, ufo_oregon)
+
+#cleaning new dataset
+oregon_join1 %<>% 
+  na.omit() %>% 
+  select(-id)
+
+#getting informtion on the lat and long of each county for plotting
+county <- ggplot2::map_data("county")
+
+#changing the variables in county to have a key that will match ufo_oregon dataset
+oregon_county <- county %>% 
+  filter(region == "oregon") %>% 
+  mutate(county = subregion)
+
+oregon_join1$county <- tolower(oregon_join1$county)
+
+#merging the county lat long dataset with the oregon_join1 dataset
+oregon_join2 <- left_join(oregon_join1, oregon_county)
+
+#getting the frequency of observations per county
+oregon_plot_freq <- oregon_join2 %>% 
+  group_by(county) %>% 
+  count()
+
+#joining the frequency back with the main dataset
+oregon_join3 <- left_join(oregon_join2, oregon_plot_freq)
+
+#dropping region and subregion from new overall dataset
+oregon_join3 %<>% 
+  select(-c(region, subregion))
+
+#creating the dataset for the state base for the plot
+oregon_base <- state_fixed %>% 
+  filter(state_full == "oregon")
+
+#making the base of oregon for the plot
+oregon_base <- ggplot(data = oregon_base, 
+                     mapping = aes(x = long, y = lat, group = group)) + 
+  coord_fixed(1.3) + 
+  geom_polygon(color = "white", fill = "white")
+
+#code that fills oregon with frequency data
+oregon_filled <- oregon_base + 
+  geom_polygon(data = oregon_join3, aes(fill = n), color = "white") +
+      geom_polygon(color = "white", fill = NA) +
+      scale_fill_continuous_sequential("viridis", name = "Frequency") +
+  ditch_the_axes
+
+#adding title
+plot_title_freq <- oregon_filled + 
+  labs(title = "Frequency of UFO citings per county in Oregon",
+       subtitle = "Top five counties labeled",
+       caption = "Data from National UFO Reporting Center and US Census Bureau")
+
+#figuring out top 5
+oregon_join3 %>% 
+  select(county, n, group) %>% 
+  arrange(-n) %>% 
+  unique() %>% 
+  filter(n > 6693)
+
+#Adding labels for the top 5 counties
+plot_title_freq + theme(panel.background = element_rect(fill = "gray22")) +
+  annotate("text", 
+           label = "Multnomah", 
+           y = 45.5, 
+           x = -122.2, 
+           color = "white", 
+           size = 2.5,
+           fontface = "bold") +
+  annotate("text", 
+           label = "Lane", 
+           x = -122.7, 
+           y = 44, 
+           color = "white", 
+           size = 2.5,
+           fontface = "bold") +
+    annotate("text", 
+           label = "Washington", 
+           x = -123.3, 
+           y = 45.5, 
+           color = "white", 
+           size = 2.5,
+           fontface = "bold") +
+    annotate("text", 
+           label = "Marion", 
+           x = -122.1, 
+           y = 44.8, 
+           color = "white", 
+           size = 2.5,
+           fontface = "bold") +
+   annotate("text", 
+           label = "Clackamas", 
+           x = -122.2, 
+           y = 45.2, 
+           color = "white", 
+           size = 2.5,
+           fontface = "bold")
+```
+
+###Plot 3B: Choropleth of proportion of reports across Oregon by location
+
+```{r chloropleth of proportion in oregon ever}
+#finding the proportion of observations per county
+oregon_plot_proportion <- oregon_join3 %>% 
+  group_by(county) %>% 
+  mutate(freq_bypop = (n/county_pop)) %>% 
+  summarize(freq_bypop_percounty = mean(freq_bypop))
+
+#adding proportion back into overall dataset
+oregon_join4 <- left_join(oregon_join3, oregon_plot_proportion)
+
+#filling in base with county proportion information
+oregon_filled_pro <- oregon_base + 
+  geom_polygon(data = oregon_join4, aes(fill = freq_bypop_percounty), color = "white") +
+      geom_polygon(color = "white", fill = NA) +
+      scale_fill_continuous_sequential("viridis", name = "Proportion") +
+  ditch_the_axes
+
+#adding title
+plot_title <- oregon_filled_pro + 
+  labs(title = "Proportion of UFO citings per county in Oregon",
+       subtitle = "Top five counties labeled",
+       caption = "Data from National UFO Reporting Center and US Census Bureau") 
+
+#Figuring out top 5 counties
+county_names <- oregon_join4 %>% 
+  select(county, freq_bypop_percounty, group) %>% 
+  arrange(-freq_bypop_percounty) %>% 
+  unique() %>% 
+  filter(freq_bypop_percounty > 0.06523439)
+
+#Adding labels for the top 5 counties
+plot_title + 
+  theme(panel.background = element_rect(fill = "gray22")) +
+  annotate("text", 
+           label = "Baker", 
+           y = 44.7, 
+           x = -117.7, 
+           color = "white", 
+           size = 3.5,
+           fontface = "bold") +
+  annotate("text", 
+           label = "Lane", 
+           x = -122.7, 
+           y = 44, 
+           color = "white", 
+           size = 3.5,
+           fontface = "bold") +
+    annotate("text", 
+           label = "Curry", 
+           x = -124.5, 
+           y = 42.4, 
+           color = "white", 
+           size = 3,
+           fontface = "bold") +
+    annotate("text", 
+           label = "Tillamook", 
+           x = -124.2, 
+           y = 46, 
+           color = "white", 
+           size = 3,
+           fontface = "bold") +
+   annotate("text", 
+           label = "Lincoln", 
+           x = -124.2, 
+           y = 44.7, 
+           color = "white", 
+           size = 3,
+           fontface = "bold")
+```
+
 
 
 
