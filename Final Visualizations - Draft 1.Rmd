@@ -8,19 +8,33 @@ editor_options:
 ---
 
 ````{r setup and data import, echo = FALSE, warning = FALSE, message=FALSE, error=FALSE}
+
+# ASH: To enhance reproducability/make life easier on those reviewing your work, it may be worthwhile to include install.packages for each package you require:
+#install.packages("rio")
+#install.packages("here")
+#install.packages("tidyverse")
+#install.packages("magrittr")
+#install.packages("RColorBrewer")
+#install.packages("ggridges")
+#install.packages("XML")
+#install.packages("janitor")
+#install.packages("colorspace")
+#install.packages("ggrepel")
+
 library(rio)
 library(here)
 library(tidyverse)
 library(magrittr)
 library(RColorBrewer)
-library(ggridges)
+library(ggridges) # ASH: You had this listed twice; I removed it the second time it appeared
 library(XML)
 library(janitor)
 library(colorspace)
-library(ggridges)
 #library(ggsci)
 library(ggrepel)
-knitr::opts_chunk$set()
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE) # ASH: I added this because when I knitted your document, the warning messages were a little distracting
 
 #read in data on all UFO citings in Jan 2019
 x <- readHTMLTable("http://www.nuforc.org/webreports/ndxe201901.html")
@@ -56,7 +70,7 @@ Plot showing the shape of the country with colors changing on the map according 
 ```{r plot 1 - chloropleth version 1}
 state <- ggplot2::map_data("state")
 
-#need to have a varaible with the full state names in lowercase to merge datasets
+#need to have a variable with the full state names in lowercase to merge datasets
 state_fullname <- datasets::state.name #calling dataset with state names
 state_fullname <- sapply(state.name, tolower) #making them lowercase
 
@@ -117,7 +131,7 @@ state_filled +
        caption = "Data from National UFO Reporting Center and US Census Bureau")
 ```
 
-After makung the first chloropleth, I decideed the patterns it is showing might be a little misguided, as the frequency of observations seems to be confounded with the populatin size of the state. I decided to re-do the plot to represent the proportion of observations according to the state population.
+After making the first chloropleth, I decided the patterns it is showing might be a little misguided, as the frequency of observations seems to be confounded with the population size of the state. I decided to re-do the plot to represent the proportion of observations according to the state population.
 
 ###Plot 1B: Chloropleth of proportion
 
@@ -166,7 +180,7 @@ state_base2 <- ggplot(data = pop_state_freq_merged1 , mapping = aes(x = long, y 
 state_filled2 <- state_base + 
   geom_polygon(data = pop_state_freq_merged1 , aes(fill = freq_bypop_perstate), color = "white") +
       geom_polygon(color = "white", fill = NA) +
-      scale_fill_continuous_sequential("viridis", name = "Proprtion") +
+      scale_fill_continuous_sequential("viridis", name = "Proportion") +
   ditch_the_axes
 
 #adding labels
@@ -174,13 +188,16 @@ state_filled2 +
   labs(title = "Proportion of UFO citings per state",
        subtitle = "Proportion determined by number of citings divided by population size",
        caption = "Data from National UFO Reporting Center and US Census Bureau")
+
+# ASH: I agree with your decision to control for a state's population, and the graph itself looks fantastic. I actually love the default viridis color palette! For the final product, it may be cool to combine plot 1a and 1b via cowplot or something similar. Also, with plot 1b, I'd try converting the scale into something a bit easier to interpret. Personally, I try to avoid scientific notation.
+
 ```
 
 I then decided that another way to visualized this information might be to make a barplot showing the frequency of observations by state and region with state organized in descending order in regards to population, to show outlier states with more observations that other states around their same size in population.
 
 ###Plot2: Bar plot showing frequency of observations per state with state in descending order by population
 
-```{r}
+```{r plot2}
 #made the population dataset to include a variable of region
 pop_region <- pop %>%
   select(c(state_full, popestimate2018, region)) %>%  
@@ -225,9 +242,12 @@ ggplot(plot_freq_bystate_andregion2, aes(reorder(state_abrv, popestimate2018), n
        y = "Frequency of UFO observations",
        x = "State",
        caption = "Data from National UFO Reporting Center and US Census Bureau")
+
+# ASH: I understand/appreciate you trying to see if this method is better at depicting the message gathered from your first plot. But, with the addition of coloring by region, I think it would be better to reduce cognitive load/change the focus of this plot by reordering states by n rather than their population. That way we can better observe any potential patterns as a function of region. I'd also consider increasing the width of your bars or the height of the figure itself (your state labels are overlapping).
+
 ```
 
-Started with this heatmap, did it by state and by region, and realized that, without observations each day, a heatmap really wasn't going to work too well and there wasn't enough data overtime (only a month) to really bin lerger time intervals. If you have suggestions of how to improve this, please let me know.
+Started with this heatmap, did it by state and by region, and realized that, without observations each day, a heatmap really wasn't going to work too well and there wasn't enough data overtime (only a month) to really bin larger time intervals. If you have suggestions of how to improve this, please let me know.
 
 ###Plot 3A: Choropleth of frequency of reports across Oregon by location
 Plot showing the shape of the state of Oregon with colors changing on the map according to the density of the reports, using changes in color like a heatmap and ideally the viridis color palette. I would like to have either county outlines on the state and cities also identified on the map for reference (like Eugene, Portland, Bend, McMinville (UFO festival location, has to be identified!)).
@@ -339,6 +359,9 @@ plot_title_freq + theme(panel.background = element_rect(fill = "gray22")) +
            color = "white", 
            size = 2.5,
            fontface = "bold")
+
+# ASH: Oooh, this is very pretty! One way to enhance this plot could be by printing the text in a different color? The white is a litte hard to read when it overlaps county lines.
+
 ```
 
 ###Plot 3B: Choropleth of proportion of reports across Oregon by location
@@ -347,7 +370,7 @@ plot_title_freq + theme(panel.background = element_rect(fill = "gray22")) +
 #finding the proportion of observations per county
 oregon_plot_proportion <- oregon_join3 %>% 
   group_by(county) %>% 
-  mutate(freq_bypop = (n/county_pop)) %>% 
+  mutate(freq_bypop = (n/county_pop)) %>% # ASH: To be clear, here you are controlling for population size for a given county?
   summarize(freq_bypop_percounty = mean(freq_bypop))
 
 #adding proportion back into overall dataset
@@ -410,10 +433,23 @@ plot_title +
            y = 44.7, 
            color = "white", 
            size = 3,
-           fontface = "bold")
+           fontface = "bold") 
+
+# ASH: See previous comment about text color. Perhaps the white could work if you move the text around a bit (e.g., shift Tillamook, Lincoln, and Curry to the left).
+
 ```
 
+### Ashley's peer review breakdown:
 
+**Three areas of strength:**
 
+  + Excellent use of commentary; I knew what you were trying to achieve with each line of code!
+  + Super creative/clever idea with exceptional execution:
+     + The fact that you created so many geospatial maps is incredible! Very impressive! I have yet to try this myself because it seems daunting. You also used functions not covered in class (e.g., sapply—line 75), which is quite sophisticated in my opinion. 
+  + Great graphical presentation:
+      + Good use of color-blind friendly palette
 
+**At least one thing I learned:**
 
+  + In the past, I had to do a lot of googling/examining old assignments to find another dataset that I could join to an existing dataset (I needed info not in the existing file). I never thought of creating my own key then importing it like you did yourself. 
+  + I also didn't know that you could call the viridis color palette via scale_fill_continuous_sequential--good to know! I always use scale_fill_viridis_c()
