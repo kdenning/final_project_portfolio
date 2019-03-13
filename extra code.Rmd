@@ -1,0 +1,72 @@
+---
+title: "old code"
+author: "Kathryn Denning"
+date: "2/27/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+###Plot 2: A heatmap showing the frequency of reports over days in the last month
+Heatmap will show frequency of reports on the y-axis and time on the x-axis. I plan on using the viridis color palette.
+
+```{r}
+#cleaning date_time variable to be separate variables and making date interpretable using lubridate
+plot2_time <- join1 %>% 
+  separate(date_time, c("date", "time"), sep = " ") %>% 
+  mutate(date = lubridate::mdy(date),
+         state = state_abrv) 
+
+#then getting frequncy of observations per state per day
+plot2_state <- plot2_time %>% 
+  group_by(state, date) %>% 
+  count()
+
+#doing the same but for region instead of state
+##first need to merge datasets to have region information
+join2 <- left_join(region_withfullstate, plot_freq_bystate_andregion2)
+
+##now getting frequency
+plot2_region_joined <-join2 %>% 
+  group_by(region, date) %>% 
+  count()
+
+#heatmap of observations per state per day
+ggplot(plot2 , aes(state, date)) +
+    geom_tile(aes(fill = n)) +
+scale_fill_viridis_c() +
+  coord_flip()
+
+#heatmap of observations per region per day
+ggplot(plot2_region_joined, aes(region, date)) +
+  geom_tile(aes(fill = n)) +
+  scale_fill_viridis_c(name = "Frequency") +
+  theme_minimal()
+```
+
+```{r}
+
+```{r}
+plot_freq_bystate_andregion %<>% 
+  mutate(shape = as.factor(shape))
+
+shape_plot_us <- plot_freq_bystate_andregion %>% 
+  group_by(shape) %>% 
+  filter(shape != "Unknown") %>% 
+  count() %>% 
+  arrange(-nn) %>% 
+  na.omit() %>% 
+  filter(nn > 10)
+
+ggplot(shape_plot_us, aes(reorder(shape, -nn), nn, fill = shape)) +
+  geom_col(position = "dodge") +
+  #scale_fill_viridis_d() +
+  labs(title = "Frequency of UFO observations by shape",
+       y = "Frequency",
+       x = "Shape") +
+  theme_dark() + 
+  theme(
+    panel.background = element_rect(fill = "#2D2D2D"),
+    legend.position = "none") +
+  scale_fill_tron()
+```
+```

@@ -1,5 +1,5 @@
 ---
-title: "Proposal"
+title: "Portfolio Project Proposal"
 author: "Kathryn Denning"
 date: "2/4/2019"
 output: html_document
@@ -24,28 +24,31 @@ y <- readHTMLTable("http://www.nuforc.org/webreports/ndxlOR.html")
 ufo_oregon <- plyr::ldply(y, data.frame)
 ```
 
-
-#What I did to the original data to get it smaller
-
-
 #Description of data:
+These two datafiles come from the National UFO Reporting Center (http://www.nuforc.org/index.html). One dataset includes all of the reported UFO sightings for January 2019. The other file contains all of the reported UFO sightings in Oregon on record. Both datasets include the following variables: date/time, city, state (though for the Oregon dataset this is all one state), shape (of the reported UFO), duration (of the object's appearance), summary (description by the reporter), and date posted (when it was posted on the website). A .id column appeared when converting both datafiles into a dataframe, but is not on the website and all datafilesand will be deleted.
 
-#Plot 1
-##Rough plot
+#Description of plots
 
-##Idea of story communicating
+All plots will be made for a general public audience, though the scientific(?) community interested in UFO sightings might also be interested.
 
-#Plot 2
-##Rough plot
+###Plot 1: Choropleth of frequency of reports across US by location
+Plot showing the shape of the country with colors changing on the map according to the density of the reports, using changes in color like a heatmap and ideally the viridis color palette. I plan on doing this at the city level within each state, but hopefully can still have the outline of each state visible in the map of the US as well.
 
-##Idea of story communicating
+###Plot 2: A heatmap showing the frequency of reports over days in the last month
+Heatmap will show frequency of reports on the y-axis and time on the x-axis. I plan on using the viridis color palette.
 
-#Plot 3
-##Rough plot
+###Plot 3: A scatterplot showing reports over days in the last month by shape
+Scatterplot showing the frequency of reports on the y-axis across time in days on x-axis grouped by shape. I plan on displaying shape by (ideally) using corresponding shapes as the dots, though otherwise I might identify shape by color or with lines/geom_ribbon corresponding with shape. 
 
-##Idea of story communicating
+###Plot 4: Choropleth of frequency of reports across Oregon by location
+Plot showing the shape of the state of Oregon with colors changing on the map according to the density of the reports, using changes in color like a heatmap and ideally the viridis color palette. I would like to have either county outlines on the state and cities also identified on the map for reference (like Eugene, Portland, Bend, McMinville (UFO festival location, has to be identified!)).
 
-#Plot 4
-##Rough plot
+###Plot 5: A heatmap showing frequency of reports in Oregon over time
+Heatmap will show frequency of reports on the y-axis and time on the x-axis. I plan on using the viridis color palette.
 
-##Idea of story communicating
+###Plot 6: A plot showing frequency of reports by city in Oregon (top 10)
+Barplot with frequency on the y-axis and city on the x-axis, most likely with the axes switched. I haven't thought of what color scheme I might want to designate city.
+
+
+
+
