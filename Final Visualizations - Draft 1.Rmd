@@ -8,8 +8,6 @@ editor_options:
 ---
 
 ````{r setup and data import, echo = FALSE, warning = FALSE, message=FALSE, error=FALSE}
-
-# ASH: To enhance reproducability/make life easier on those reviewing your work, it may be worthwhile to include install.packages for each package you require:
 #install.packages("rio")
 #install.packages("here")
 #install.packages("tidyverse")
@@ -20,13 +18,12 @@ editor_options:
 #install.packages("janitor")
 #install.packages("colorspace")
 #install.packages("ggrepel")
-
 library(rio)
 library(here)
 library(tidyverse)
 library(magrittr)
 library(RColorBrewer)
-library(ggridges) # ASH: You had this listed twice; I removed it the second time it appeared
+library(ggridges)
 library(XML)
 library(janitor)
 library(colorspace)
@@ -34,7 +31,7 @@ library(colorspace)
 library(ggrepel)
 knitr::opts_chunk$set(echo = TRUE,
                       message = FALSE,
-                      warning = FALSE) # ASH: I added this because when I knitted your document, the warning messages were a little distracting
+                      warning = FALSE)
 
 #read in data on all UFO citings in Jan 2019
 x <- readHTMLTable("http://www.nuforc.org/webreports/ndxe201901.html")
@@ -58,7 +55,9 @@ ufo_oregon <- plyr::ldply(y, data.frame)
 ```
 
 #Description of data:
-These two datafiles come from the National UFO Reporting Center (http://www.nuforc.org/index.html). One dataset includes all of the reported UFO sightings for January 2019. The other file contains all of the reported UFO sightings in Oregon on record. Both datasets include the following variables: date/time, city, state (though for the Oregon dataset this is all one state), shape (of the reported UFO), duration (of the object's appearance), summary (description by the reporter), and date posted (when it was posted on the website). A .id column appeared when converting both datafiles into a dataframe, but is not on the website and all datafilesand will be deleted.
+The two main datafiles come from the National UFO Reporting Center (http://www.nuforc.org/index.html). One dataset includes all of the reported UFO sightings for January 2019. The other file contains all of the reported UFO sightings in Oregon on record. Both datasets include the following variables: date/time, city, state (though for the Oregon dataset this is all one state), shape (of the reported UFO), duration (of the object's appearance), summary (description by the reporter), and date posted (when it was posted on the website). A .id column appeared when converting both datafiles into a dataframe, but is not on the website and all datafilesand will be deleted.
+
+I also used data on the state population size from the US Census (https://www.census.gov/newsroom/press-kits/2018/pop-estimates-national-state.html),county populaiton size from an education resource called "Together we teach" (http://www.togetherweteach.com/TWTIC/uscityinfo/37or/37or.html), and city/county association from http://www.ehealthlink.com/citytocounty.htm.
 
 #Description of plots
 
