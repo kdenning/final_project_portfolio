@@ -131,7 +131,7 @@ state_filled <- state_base +
 
 #adding title
 statefilled1_withlabs <- state_filled + 
-  labs(title = "Frequency of UFO citings per state",
+  labs(title = "Frequency of UFO citings per state in January 2019",
        caption = "Data from National UFO Reporting Center and US Census Bureau")
 ```
 
@@ -326,9 +326,7 @@ oregon_filled <- oregon_base +
 
 #adding title
 plot_title_freq <- oregon_filled + 
-  labs(title = "Frequency of UFO citings per county in Oregon",
-       subtitle = "Top five counties labeled") +
-  theme(panel.background = element_rect(fill = "gray22"))
+  labs(title = "Frequency of UFO citings per county in Oregon")
 
 #figuring out top 5
 oregon_join3 %>% 
@@ -339,8 +337,8 @@ oregon_join3 %>%
 
 #creating dataset with names of counties and locations
 freq_top5names <- c("Multnomah", "Lane", "Washington", "Marion", "Clackamas")
-freq_y <- c(45.6, 44, 45.5, 44.8, 45.2)
-freq_x <- c(-122.1, -122.7, -123.3, -122.1, -122.2)
+freq_y <- c(45.5, 44, 45.6, 44.8, 45.1)
+freq_x <- c(-121.9, -122.5, -123.4, -122.1, -122)
 
 freq_top5 <- data.frame(
   names = freq_top5names,
@@ -348,9 +346,10 @@ freq_top5 <- data.frame(
   x = freq_x
 )
 
+#making a dataset for city, but couldnt' get the code later to run (it timed out...)
 city <- c("Eugene", "Portland")
 lat <- c(44.0521, 45.5122)
-long <- c(123.0868, 122.6587)
+long <- c(-123.0868, -122.6587)
 
 cities <- data.frame(
   city = city,
@@ -360,8 +359,9 @@ cities <- data.frame(
 
 #Adding labels for the top 5 counties and big cities
 or_plot1 <- plot_title_freq + 
-  geom_shadowtext(data = freq_top5, aes(label = names, x = x, y = y), inherit.aes = FALSE, size = 2, bg.colour='violetred4') + geom_point(aes(x = long, y = lat), data = cities, inherit.aes = FALSE) + 
-    geom_text_repel(aes(x = long, y = lat, label = city), data = cities, inherit.aes = FALSE)
+  geom_shadowtext(data = freq_top5, aes(label = names, x = x, y = y), inherit.aes = FALSE, size = 2, bg.colour='violetred4') 
+
+or_plot1_cities <- or_plot1 + geom_point(aes(x = long, y = lat), data = cities, inherit.aes = FALSE, color = "red") + geom_text_repel(aes(x = long, y = lat, label = city), data = cities, inherit.aes = FALSE, color = "red", size = 2, fontface = "bold")
 ```
 
 ### Plot 3B: Choropleth of proportion of reports across Oregon by location
@@ -370,7 +370,7 @@ or_plot1 <- plot_title_freq +
 #finding the proportion of observations per county
 oregon_plot_proportion <- oregon_join3 %>% 
   group_by(county) %>% 
-  mutate(freq_bypop = (n/county_pop)) %>% # ASH: To be clear, here you are controlling for population size for a given county?
+  mutate(freq_bypop = (n/county_pop)) %>% 
   summarize(freq_bypop_percounty = mean(freq_bypop))
 
 #adding proportion back into overall dataset
@@ -385,8 +385,7 @@ oregon_filled_pro <- oregon_base +
 
 #adding title
 plot_title <- oregon_filled_pro + 
-  labs(title = "Proportion of UFO citings per county in Oregon") +
-  theme(panel.background = element_rect(fill = "gray22"))
+  labs(title = "Proportion of UFO citings per county in Oregon")
 
 #Figuring out top 5 counties
 county_names <- oregon_join4 %>% 
@@ -405,18 +404,22 @@ prop_top5 <- data.frame(
   y = pro_y,
   x = pro_x
 )
-#Adding labels for the top 5 counties
+
+#Figure out total # of citings in OR ever
+oregon_join4 %>% 
+  count()
+
+#Adding labels for the top 5 counties and Eugene/Portland
 or_plot2 <- plot_title  + 
   geom_shadowtext(data = prop_top5, aes(label = names, x = x, y = y), inherit.aes = FALSE, size = 2, bg.colour='violetred4')
 
-
-# ASH: See previous comment about text color. Perhaps the white could work if you move the text around a bit (e.g., shift Tillamook, Lincoln, and Curry to the left).
+or_plot2_cities <- or_plot2 + geom_point(aes(x = long, y = lat), data = cities, inherit.aes = FALSE, color = "red") + geom_text_repel(aes(x = long, y = lat, label = city), data = cities, inherit.aes = FALSE, color = "red", size = 2, fontface = "bold")
 
 #combining plots 1A and 1B into one plot side by side
-combined2 <- plot_grid(or_plot1, or_plot2, labels = c("", ""), align = "hv", nrow = 2, hjust = -.05)
+combined2 <- plot_grid(or_plot1_cities, or_plot2_cities, labels = c("", ""), align = "hv", nrow = 2, hjust = -.05)
 
 #Adding a caption
-ggdraw(add_sub(combined1, "Data from National UFO Reporting Center and US Census Bureau", x = .5, y = 1, hjust = .3, vjust = 0.5, fontfamily = "",
+OR_final_withcounties <- ggdraw(add_sub(combined2, "Top five counties labeled. 121,456 documented citings statewide since 1905.\nData from National UFO Reporting Center and US Census Bureau.", x = .1, hjust = .1, vjust = 0, fontfamily = "",
   fontface = "plain", colour = "black", size = 10, angle = 0,
   lineheight = 0.9))
 
