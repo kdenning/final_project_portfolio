@@ -19,6 +19,7 @@ editor_options:
 #install.packages("colorspace")
 #install.packages("ggrepel")
 #install.packages("cowplot")
+#install.packages("shadowtext")
 library(rio)
 library(here)
 library(tidyverse)
@@ -31,6 +32,7 @@ library(colorspace)
 #library(ggsci)
 library(ggrepel)
 library(cowplot)
+library(shadowtext)
 
 knitr::opts_chunk$set(echo = TRUE,
                       message = FALSE,
@@ -325,8 +327,8 @@ oregon_filled <- oregon_base +
 #adding title
 plot_title_freq <- oregon_filled + 
   labs(title = "Frequency of UFO citings per county in Oregon",
-       subtitle = "Top five counties labeled",
-       caption = "Data from National UFO Reporting Center and US Census Bureau")
+       subtitle = "Top five counties labeled") +
+  theme(panel.background = element_rect(fill = "gray22"))
 
 #figuring out top 5
 oregon_join3 %>% 
@@ -335,46 +337,31 @@ oregon_join3 %>%
   unique() %>% 
   filter(n > 6693)
 
-#Adding labels for the top 5 counties
-plot_title_freq + theme(panel.background = element_rect(fill = "gray22")) +
-  annotate("text", 
-           label = "Multnomah", 
-           y = 45.5, 
-           x = -122.2, 
-           color = "white", 
-           size = 2.5,
-           fontface = "bold") +
-  annotate("text", 
-           label = "Lane", 
-           x = -122.7, 
-           y = 44, 
-           color = "white", 
-           size = 2.5,
-           fontface = "bold") +
-    annotate("text", 
-           label = "Washington", 
-           x = -123.3, 
-           y = 45.5, 
-           color = "white", 
-           size = 2.5,
-           fontface = "bold") +
-    annotate("text", 
-           label = "Marion", 
-           x = -122.1, 
-           y = 44.8, 
-           color = "white", 
-           size = 2.5,
-           fontface = "bold") +
-   annotate("text", 
-           label = "Clackamas", 
-           x = -122.2, 
-           y = 45.2, 
-           color = "white", 
-           size = 2.5,
-           fontface = "bold")
+#creating dataset with names of counties and locations
+freq_top5names <- c("Multnomah", "Lane", "Washington", "Marion", "Clackamas")
+freq_y <- c(45.6, 44, 45.5, 44.8, 45.2)
+freq_x <- c(-122.1, -122.7, -123.3, -122.1, -122.2)
 
-# ASH: Oooh, this is very pretty! One way to enhance this plot could be by printing the text in a different color? The white is a litte hard to read when it overlaps county lines.
+freq_top5 <- data.frame(
+  names = freq_top5names,
+  y = freq_y,
+  x = freq_x
+)
 
+city <- c("Eugene", "Portland")
+lat <- c(44.0521, 45.5122)
+long <- c(123.0868, 122.6587)
+
+cities <- data.frame(
+  city = city,
+  long = long,
+  lat = lat
+)
+
+#Adding labels for the top 5 counties and big cities
+or_plot1 <- plot_title_freq + 
+  geom_shadowtext(data = freq_top5, aes(label = names, x = x, y = y), inherit.aes = FALSE, size = 2, bg.colour='violetred4') + geom_point(aes(x = long, y = lat), data = cities, inherit.aes = FALSE) + 
+    geom_text_repel(aes(x = long, y = lat, label = city), data = cities, inherit.aes = FALSE)
 ```
 
 ### Plot 3B: Choropleth of proportion of reports across Oregon by location
@@ -398,9 +385,8 @@ oregon_filled_pro <- oregon_base +
 
 #adding title
 plot_title <- oregon_filled_pro + 
-  labs(title = "Proportion of UFO citings per county in Oregon",
-       subtitle = "Top five counties labeled",
-       caption = "Data from National UFO Reporting Center and US Census Bureau") 
+  labs(title = "Proportion of UFO citings per county in Oregon") +
+  theme(panel.background = element_rect(fill = "gray22"))
 
 #Figuring out top 5 counties
 county_names <- oregon_join4 %>% 
@@ -409,45 +395,29 @@ county_names <- oregon_join4 %>%
   unique() %>% 
   filter(freq_bypop_percounty > 0.06523439)
 
+#creating dataset with names of counties and locations
+pro_top5names <- c("Baker", "Lane", "Curry", "Tillamook", "Lincoln")
+pro_y <- c(44.7, 44, 45.5, 46, 44.7)
+pro_x <- c(-117.7, -122.7, -124, -124.2, -124.2)
+
+prop_top5 <- data.frame(
+  names = pro_top5names,
+  y = pro_y,
+  x = pro_x
+)
 #Adding labels for the top 5 counties
-plot_title + 
-  theme(panel.background = element_rect(fill = "gray22")) +
-  annotate("text", 
-           label = "Baker", 
-           y = 44.7, 
-           x = -117.7, 
-           color = "white", 
-           size = 3.5,
-           fontface = "bold") +
-  annotate("text", 
-           label = "Lane", 
-           x = -122.7, 
-           y = 44, 
-           color = "white", 
-           size = 3.5,
-           fontface = "bold") +
-    annotate("text", 
-           label = "Curry", 
-           x = -124.5, 
-           y = 42.4, 
-           color = "white", 
-           size = 3,
-           fontface = "bold") +
-    annotate("text", 
-           label = "Tillamook", 
-           x = -124.2, 
-           y = 46, 
-           color = "white", 
-           size = 3,
-           fontface = "bold") +
-   annotate("text", 
-           label = "Lincoln", 
-           x = -124.2, 
-           y = 44.7, 
-           color = "white", 
-           size = 3,
-           fontface = "bold") 
+or_plot2 <- plot_title  + 
+  geom_shadowtext(data = prop_top5, aes(label = names, x = x, y = y), inherit.aes = FALSE, size = 2, bg.colour='violetred4')
+
 
 # ASH: See previous comment about text color. Perhaps the white could work if you move the text around a bit (e.g., shift Tillamook, Lincoln, and Curry to the left).
+
+#combining plots 1A and 1B into one plot side by side
+combined2 <- plot_grid(or_plot1, or_plot2, labels = c("", ""), align = "hv", nrow = 2, hjust = -.05)
+
+#Adding a caption
+ggdraw(add_sub(combined1, "Data from National UFO Reporting Center and US Census Bureau", x = .5, y = 1, hjust = .3, vjust = 0.5, fontfamily = "",
+  fontface = "plain", colour = "black", size = 10, angle = 0,
+  lineheight = 0.9))
 
 ```
