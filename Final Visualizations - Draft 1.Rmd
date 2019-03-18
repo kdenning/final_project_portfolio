@@ -1,7 +1,7 @@
 ---
-title: "Final Project Visualizations - Draft 1"
+title: "Final Project Visualizations"
 author: "Kathryn Denning"
-date: "2/25/2019"
+date: "3/20/2019"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -18,6 +18,7 @@ editor_options:
 #install.packages("janitor")
 #install.packages("colorspace")
 #install.packages("ggrepel")
+#install.packages("cowplot")
 library(rio)
 library(here)
 library(tidyverse)
@@ -29,6 +30,8 @@ library(janitor)
 library(colorspace)
 #library(ggsci)
 library(ggrepel)
+library(cowplot)
+
 knitr::opts_chunk$set(echo = TRUE,
                       message = FALSE,
                       warning = FALSE)
@@ -54,16 +57,16 @@ y <- readHTMLTable("http://www.nuforc.org/webreports/ndxlOR.html")
 ufo_oregon <- plyr::ldply(y, data.frame)
 ```
 
-#Description of data:
+# Description of data:
 The two main datafiles come from the National UFO Reporting Center (http://www.nuforc.org/index.html). One dataset includes all of the reported UFO sightings for January 2019. The other file contains all of the reported UFO sightings in Oregon on record. Both datasets include the following variables: date/time, city, state (though for the Oregon dataset this is all one state), shape (of the reported UFO), duration (of the object's appearance), summary (description by the reporter), and date posted (when it was posted on the website). A .id column appeared when converting both datafiles into a dataframe, but is not on the website and all datafilesand will be deleted.
 
 I also used data on the state population size from the US Census (https://www.census.gov/newsroom/press-kits/2018/pop-estimates-national-state.html),county populaiton size from an education resource called "Together we teach" (http://www.togetherweteach.com/TWTIC/uscityinfo/37or/37or.html), and city/county association from http://www.ehealthlink.com/citytocounty.htm.
 
-#Description of plots
+# Description of plots
 
 All plots will be made for a general public audience, though the scientific(?) community interested in UFO sightings might also be interested.
 
-###Plot 1A: Choropleth of frequency of reports across US by location
+### Plot 1A: Choropleth of frequency of reports across US by location
 Plot showing the shape of the country with colors changing on the map according to the density of the reports, using changes in color like a heatmap and ideally the viridis color palette. I plan on doing this at the city level within each state, but hopefully can still have the outline of each state visible in the map of the US as well.
 
 ```{r plot 1 - chloropleth version 1}
@@ -125,14 +128,14 @@ state_filled <- state_base +
   ditch_the_axes
 
 #adding title
-state_filled + 
+statefilled1_withlabs <- state_filled + 
   labs(title = "Frequency of UFO citings per state",
        caption = "Data from National UFO Reporting Center and US Census Bureau")
 ```
 
 After making the first chloropleth, I decided the patterns it is showing might be a little misguided, as the frequency of observations seems to be confounded with the population size of the state. I decided to re-do the plot to represent the proportion of observations according to the state population.
 
-###Plot 1B: Chloropleth of proportion
+### Plot 1B: Chloropleth of proportion
 
 ```{r plot 1 - chloropleth with proportion of observations per population}
 #importing dataset with population stats from the United States Census Bureau
@@ -177,24 +180,35 @@ state_base2 <- ggplot(data = pop_state_freq_merged1 , mapping = aes(x = long, y 
 
 #filling in the states with the proportion data
 state_filled2 <- state_base + 
-  geom_polygon(data = pop_state_freq_merged1 , aes(fill = freq_bypop_perstate), color = "white") +
+  geom_polygon(data = pop_state_freq_merged1 , aes(fill = freq_bypop_perstate), 
+               color = "white") +
       geom_polygon(color = "white", fill = NA) +
-      scale_fill_continuous_sequential("viridis", name = "Proportion") +
-  ditch_the_axes
-
+      scale_fill_continuous_sequential("viridis", name = "Proportion", 
+                                       labels=c("Minimum (0)",
+                                                "Maximum (.000004)"),
+                                       limits=c(0,.000004), 
+                                       breaks=c(0,.000004)) + ditch_the_axes
 #adding labels
-state_filled2 + 
+state_filled2_withlabs <- state_filled2 + 
   labs(title = "Proportion of UFO citings per state",
        subtitle = "Proportion determined by number of citings divided by population size",
-       caption = "Data from National UFO Reporting Center and US Census Bureau")
+       caption = "Data from National UFO Reporting Center and US Census Bureau. 
+       No information was provided for Vermont.")
 
-# ASH: I agree with your decision to control for a state's population, and the graph itself looks fantastic. I actually love the default viridis color palette! For the final product, it may be cool to combine plot 1a and 1b via cowplot or something similar. Also, with plot 1b, I'd try converting the scale into something a bit easier to interpret. Personally, I try to avoid scientific notation.
+#combining plots 1A and 1B into one plot side by side
+combined1 <- plot_grid(state_filled, state_filled2, labels = c("Frequency of UFO citings per state", "Proportion of UFO citings per state by population"), align = "hv", nrow = 2, hjust = -.05)
+
+#Adding a caption
+ggdraw(add_sub(combined1, "Data from National UFO Reporting Center and US Census Bureau", x = .5, y = 1, hjust = .3, vjust = 0.5, fontfamily = "",
+  fontface = "plain", colour = "black", size = 10, angle = 0,
+  lineheight = 0.9))
 
 ```
 
+
 I then decided that another way to visualized this information might be to make a barplot showing the frequency of observations by state and region with state organized in descending order in regards to population, to show outlier states with more observations that other states around their same size in population.
 
-###Plot2: Bar plot showing frequency of observations per state with state in descending order by population
+### Plot2: Bar plot showing frequency of observations per state with state in descending order by population
 
 ```{r plot2}
 #made the population dataset to include a variable of region
@@ -248,7 +262,7 @@ ggplot(plot_freq_bystate_andregion2, aes(reorder(state_abrv, popestimate2018), n
 
 Started with this heatmap, did it by state and by region, and realized that, without observations each day, a heatmap really wasn't going to work too well and there wasn't enough data overtime (only a month) to really bin larger time intervals. If you have suggestions of how to improve this, please let me know.
 
-###Plot 3A: Choropleth of frequency of reports across Oregon by location
+### Plot 3A: Choropleth of frequency of reports across Oregon by location
 Plot showing the shape of the state of Oregon with colors changing on the map according to the density of the reports, using changes in color like a heatmap and ideally the viridis color palette. I would like to have either county outlines on the state and cities also identified on the map for reference (like Eugene, Portland, Bend, McMinville (UFO festival location, has to be identified!)).
 
 ```{r chloropleth of frequency in oregon ever}
@@ -363,7 +377,7 @@ plot_title_freq + theme(panel.background = element_rect(fill = "gray22")) +
 
 ```
 
-###Plot 3B: Choropleth of proportion of reports across Oregon by location
+### Plot 3B: Choropleth of proportion of reports across Oregon by location
 
 ```{r chloropleth of proportion in oregon ever}
 #finding the proportion of observations per county
@@ -437,18 +451,3 @@ plot_title +
 # ASH: See previous comment about text color. Perhaps the white could work if you move the text around a bit (e.g., shift Tillamook, Lincoln, and Curry to the left).
 
 ```
-
-### Ashley's peer review breakdown:
-
-**Three areas of strength:**
-
-  + Excellent use of commentary; I knew what you were trying to achieve with each line of code!
-  + Super creative/clever idea with exceptional execution:
-     + The fact that you created so many geospatial maps is incredible! Very impressive! I have yet to try this myself because it seems daunting. You also used functions not covered in class (e.g., sapply—line 75), which is quite sophisticated in my opinion. 
-  + Great graphical presentation:
-      + Good use of color-blind friendly palette
-
-**At least one thing I learned:**
-
-  + In the past, I had to do a lot of googling/examining old assignments to find another dataset that I could join to an existing dataset (I needed info not in the existing file). I never thought of creating my own key then importing it like you did yourself. 
-  + I also didn't know that you could call the viridis color palette via scale_fill_continuous_sequential--good to know! I always use scale_fill_viridis_c()
